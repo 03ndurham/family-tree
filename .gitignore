@@ -1,0 +1,20 @@
+# Virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# OS-specific files
+.DS_Store
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# Database and local environment
+*.db
+.env
+
+# Tree export images
+assets/exports/
