@@ -9,11 +9,10 @@ Stores core data for each person in the tree.
 | `name`      | TEXT                                                        | Full name                                                                                                                                     |
 | `dob`       | DATE (Can be `NULL`)                                        | Date of birth                                                                                                                                 |
 | `dod`       | DATE (optional)                                             | Date of death                                                                                                                                 |
-| `sex`       | TEXT                                                        | Sex (e.g., M, F, Other)                                                                                                                       |
+| `sex`       | TEXT                                                        | Sex (e.g., M, F, Other.)                                                                                                                       |
 | `notes`     | TEXT (Can be `NULL`)                                        | Any additional notes the user may want to include.                                                                                            |
-| `photo`     | BLOB(Can be `NULL`)                                         | 1. In case the user wants to upload a photo. Including Photos will cause database size to swell.                                              |
-| `photo`     | TEXT (Just a reference to the file location of the picture) | 2. In case the user wants to upload a photo. Thisi verion will not actually keep the photo with the entry, but will keep database size small. |
-> I will have to decide which `photo` option to go with. Each have their merits.
+| `photo`     | TEXT (Just a reference to the file location of the picture) | 2. In case the user wants to upload a photo. This stores only a path to the photo, not the image itself, to reduce database size. |
+
 ### Relationships Table
 
 Defines parent-child links by storing references to people in the 'FamilyMember' Table.
@@ -61,7 +60,7 @@ Defines parent-child links by storing references to people in the 'FamilyMember'
 - Contacts Family Management Module to get all family members 
 - Generates a tree that expands vertically upward 
 - Y-Axis is going to be time -Inserts Box at date of birth for family members, box contains: Name DOB - DOD -Draws lines to show Relation.
-- Use Sex to color box either Blue or Pink (explore other option and an 'other' selection for Sex when creating the family member in the future.)
+- Use Sex to color box Blue (Male), Pink (Female), and Purple (Other).
 - Layout challenges with overlapping birth years—add horizontal offsets or staggered rows.
 - Potential libraries to explore: `networkx`, `graphviz`, `plotly`, `matplotlib`.
 
