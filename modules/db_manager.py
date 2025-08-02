@@ -141,14 +141,161 @@ class DatabaseManager:
         self.conn.commit()
         print(f"Database imported from JSON file {import_path}")
 
-"""
-Some Additional Methods I may want. Possibly as part of the DatabaseManager Class, or
-as it's own class (Family Manager Class)
- - add_family_member(name, date_of_birth, date_of_death, sex, notes, photo)
- - get_all_members()
- - get_member_by_id(id)
- - search_members_by_name(name_fragment)
- - add_relationship(child_id, parent_id)
- - get_parents(child_id)
- - get_children(parent_id)
-"""
+
+    def add_family_member(self, name, date_of_birth, date_of_death=None, sex=None, notes=None, photo=None):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        cursor.execute("""
+                       INSERT INTO FamilyMembers (name, date_of_birth, date_of_death, sex, notes, photo) VALUES (?,?,?,?,?)""", 
+                       (name, date_of_birth, date_of_death, sex, notes, photo))
+        self.conn.commit()
+        return cursor.lastrowid
+
+
+    def add_relationship(self, child_id: int, parent_id: int):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        
+        # Check if the relationship already exists
+        cursor.execute("""SELECT 1 FROM Relationships WHERE child_id = ? AND parent_id = ?""", (child_id, parent_id))
+        if cursor.fetchone():
+            print (f'Relationship already exists: child {child_id} -> parent {parent_id}')
+            return
+        
+        cursor.execute("""
+                       INSERT INTO Relationships (child_id, parent_id)
+                       VALUES (?,?)
+                       """, (child_id, parent_id))
+        self.conn.commit()
+        print(f'Relationship added: child {child_id} -> parent {parent_id}')
+        
+        
+    def search_members_by_name(self, name_fragment):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM FamilyMembers
+            WHERE name LIKE ?
+        """, (f"%{name_fragment}%",))
+        
+        return cursor.fetchall()
+    
+    
+    def get_all_members(self):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM FamilyMembers")
+        return cursor.fetchall()
+
+
+    def get_member_by_id(self, member_id):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM FamilyMembers WHERE id = ?", (member_id,))
+        return cursor.fetchone()
+    
+    def get_parents(self, child_id):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT fm.* FROM FamilyMembers fm
+            JOIN Relationships r ON r.parent_id = fm.id
+            WHERE r.child_id = ?
+        """, (child_id,))
+        return cursor.fetchall()
+    
+    
+    def get_children(self, parent_id):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        cursor.execute("""
+                       SELECT fm.* FROM FamilyMembers fm
+                       JOIN Relationships r ON r.child_id = fm.id
+                       WHERE r.parent_id =?
+                       """, (parent_id,))
+        return cursor.fetchall()
+
+
+    def add_person(self, name, dob, dod=None, sex=None, notes=None, photo=None, parent_ids = None):
+        member_id = self.add_family_member(name, dob, dod, sex, notes, photo)
+        
+        if parent_ids:
+            for pid in parent_ids:
+                self.add_relationship(parent_id=pid, child_id=member_id)
+        
+        return member_id
+        
+
+    def edit_person(self, member_id, name=None, date_of_birth=None, date_of_death=None,
+                       sex=None, notes=None, photo=None, parent_ids=None):
+        if not self.conn:
+            raise ValueError("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        
+        # Update FamilyMembers fields if provided
+        updates = []
+        params = []
+        if name is not None:
+            updates.append("name = ?")
+            params.append(name)
+        if date_of_birth is not None:
+            updates.append("date_of_birth = ?")
+            params.append(date_of_birth)
+        if date_of_death is not None:
+            updates.append("date_of_death = ?")
+            params.append(date_of_death)
+        if sex is not None:
+            updates.append("sex = ?")
+            params.append(sex)
+        if notes is not None:
+            updates.append("notes = ?")
+            params.append(notes)
+        if photo is not None:
+            updates.append("photo = ?")
+            params.append(photo)
+        
+        if updates:
+            sql = f"UPDATE FamilyMembers SET {', '.join(updates)} WHERE id = ?"
+            params.append(member_id)
+            cursor.execute(sql, tuple(params))
+        
+        # Update Relationships
+        if parent_ids is not None:
+            # Remove existing parent links
+            cursor.execute("DELETE FROM Relationships WHERE child_id = ?", (member_id,))
+            # Add new parent links
+            for pid in parent_ids:
+                if pid is not None:
+                    cursor.execute("INSERT INTO Relationships (child_id, parent_id) VALUES (?, ?)", (member_id, pid))
+        
+        self.conn.commit()
+        
+    
+    def delete_person(self, member_id):
+        if not self.conn:
+            raise ValueError ("Database not loaded.")
+        
+        cursor = self.conn.cursor()
+        
+        cursor.execute("DELETE FROM FamilyMembers Where id = ?", (member_id,))
+        print (f'Member {member_id} deleted from FamilyMembers Table.')
+        
+        cursor.execute("DELETE FROM Relationships WHERE child_id = ? OR parent_id = ?", (member_id, member_id))
+        print (f'Member {member_id} deleted from Relationships Table.')
+        
+        self.conn.commit()
