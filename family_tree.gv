@@ -1,0 +1,19 @@
+// Family Tree
+digraph {
+	rankdir=TB
+	1 [label="James T. Durham
+(1959-10-11)" shape=box]
+	2 [label="Carole L. Cruikshank
+(1960-10-11)" shape=box]
+	3 [label="Heather D. Durham
+(1981-09-17)" shape=box]
+	4 [label="Nathan J. Durham
+(1985-05-28)" shape=box]
+	5 [label="Isabella C. Hernandez
+(2005-07-18)" shape=box]
+	1 -> 3
+	2 -> 3
+	1 -> 4
+	2 -> 4
+	3 -> 5
+}
